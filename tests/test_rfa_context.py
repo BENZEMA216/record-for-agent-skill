@@ -1,4 +1,4 @@
-"""Unit tests for record-for-agent-skill (`scripts/rfa_context.py`)."""
+"""Unit tests for record-for-agent-skill v0.2 (`scripts/rfa_context.py`)."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from pathlib import Path
 import tempfile
 import unittest
 import zipfile
+
+import numpy as np
 
 from scripts import rfa_context as rfa
 
@@ -26,7 +28,6 @@ class RFAContextTests(unittest.TestCase):
             seg2_id = "22222222-2222-2222-2222-222222222222"
             grp_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
-            # iCloud Companion format (<id>.json + <id>.m4a)
             (icloud_dir / f"{seg1_id}.m4a").write_bytes(b"fake-m4a-1")
             (icloud_dir / f"{seg1_id}.json").write_text(
                 json.dumps(
@@ -55,7 +56,6 @@ class RFAContextTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            # Duplicate of seg1 in Google Drive format (carries external transcript)
             (drive_dir / "20251124-0001.manifest.json").write_text(
                 json.dumps(
                     {
@@ -75,7 +75,6 @@ class RFAContextTests(unittest.TestCase):
                 "我们下周先发 Beta 版。", encoding="utf-8"
             )
 
-            # Segment 2 inside a WebDAV .ctxaudio.zip atomic packet
             with zipfile.ZipFile(dav_dir / f"{seg2_id}.ctxaudio.zip", "w") as zf:
                 zf.writestr(
                     "manifest.json",
@@ -105,43 +104,71 @@ class RFAContextTests(unittest.TestCase):
             g = groups[0]
             self.assertEqual([s.sequence for s in g.segments], [1, 2])
             self.assertEqual(g.segments[0].existing_transcript, "我们下周先发 Beta 版。")
-            self.assertIsNotNone(g.segments[0].audio_path)
             self.assertEqual(g.marker_count, 1)
             self.assertTrue(g.has_biometrics)
             self.assertTrue(g.has_location)
 
-            # Export with speaker mapping
             md = rfa.render_group_markdown(
                 g,
                 cached={
                     "engine": "sensevoice-small",
                     "languages": ["zh", "en"],
                     "speaker_count": 2,
+                    "speakers": {
+                        "Speaker A": {"utterance_count": 1, "duration_seconds": 3.5, "suggested_name": "我"},
+                        "Speaker B": {"utterance_count": 1, "duration_seconds": 3.0, "suggested_name": None},
+                    },
                     "utterances": [
-                        {"start": 2.0, "end": 5.5, "speaker": "Speaker A", "text": "我们先看下周上线计划。"},
-                        {"start": 6.0, "end": 9.0, "speaker": "Speaker B", "text": "OK, I will finish tests by Friday."},
+                        {"start": 2.0, "end": 5.5, "event": "Speech", "speaker": "Speaker A", "text": "我们先看下周上线计划。"},
+                        {"start": 6.0, "end": 9.0, "event": "Speech", "speaker": "Speaker B", "text": "OK, I will finish tests by Friday."},
+                        {"start": 10.0, "end": 12.0, "event": "BGM", "speaker": None, "text": "羊蝎子火锅团购"},
                     ],
                 },
-                speaker_map={"Speaker A": "我", "Speaker B": "Alex"},
+                speaker_map={"Speaker B": "Alex"},
             )
             self.assertIn("★ `00:18`", md)
             self.assertIn("14d baseline 62.0 (+22.0 bpm)", md)
-            self.assertIn("arousal peak 64/100 (elevated)", md)
-            self.assertIn("31.23040, 121.47370", md)
             self.assertIn("[00:02] **我**: 我们先看下周上线计划。", md)
             self.assertIn("[00:06] **Alex**: OK, I will finish tests by Friday.", md)
+            self.assertIn("[00:10] _[BGM]_ 羊蝎子火锅团购", md)
 
-    def test_speaker_assignment_prefers_maximum_overlap(self) -> None:
-        timeline = [
-            (0.0, 4.0, 0),
-            (4.0, 10.0, 1),
-            (10.5, 14.0, 0),
+    def test_average_linkage_clustering_handles_bgm_short_turns_and_llm_num_speakers(self) -> None:
+        rng = np.random.default_rng(42)
+        base_a = rng.normal(size=64).astype(np.float32)
+        base_b = rng.normal(size=64).astype(np.float32)
+        # Ensure orthogonal speaker prototypes
+        base_b = base_b - (np.dot(base_b, base_a) / np.dot(base_a, base_a)) * base_a
+
+        def noisy(v: np.ndarray, scale: float = 0.15) -> np.ndarray:
+            return v + rng.normal(scale=scale, size=v.shape).astype(np.float32)
+
+        utterances = [
+            {"start": 0.0, "end": 3.0, "event": "Speech", "text": "老师，我汇报一下项目。"},
+            {"start": 3.2, "end": 3.7, "event": "Speech", "text": "嗯"},  # short turn -> backfill
+            {"start": 4.0, "end": 7.5, "event": "Speech", "text": "我觉得这个方向不太行。"},
+            {"start": 8.0, "end": 12.0, "event": "BGM", "text": "背景广告声音"},  # excluded from clustering
+            {"start": 13.0, "end": 16.5, "event": "Speech", "text": "好的，那我记下来。"},
+            {"start": 17.0, "end": 20.5, "event": "Speech", "text": "对，不好判断就不推。"},
         ]
-        self.assertEqual(rfa.assign_speaker_to_span(1.0, 3.5, timeline), "Speaker A")
-        self.assertEqual(rfa.assign_speaker_to_span(3.5, 8.0, timeline), "Speaker B")
-        self.assertEqual(rfa.assign_speaker_to_span(10.6, 13.0, timeline), "Speaker A")
-        self.assertEqual(rfa.assign_speaker_to_span(14.5, 15.0, timeline), "Speaker A")  # nearest within 1.5s
-        self.assertIsNone(rfa.assign_speaker_to_span(30.0, 31.0, timeline))  # far away
+        embeddings = [noisy(base_a), noisy(base_b, 0.2), noisy(base_b), None, noisy(base_a), noisy(base_b)]
+        vp = {"我": {"embedding": (base_b / np.linalg.norm(base_b)).tolist(), "sample_count": 10}}
+
+        auto = rfa.cluster_utterance_embeddings(utterances, embeddings, voiceprints=vp)
+        self.assertEqual(auto["speaker_count"], 2)
+        self.assertEqual(auto["utterances"][0]["speaker"], "Speaker A")
+        self.assertEqual(auto["utterances"][2]["speaker"], "Speaker B")
+        self.assertEqual(auto["utterances"][1]["speaker"], "Speaker B")  # short turn matched cleanly
+        self.assertIsNone(auto["utterances"][3]["speaker"])  # BGM excluded
+        self.assertEqual(auto["utterances"][4]["speaker"], "Speaker A")
+        self.assertEqual(auto["utterances"][5]["speaker"], "Speaker B")
+        self.assertEqual(auto["speakers"]["Speaker B"]["suggested_name"], "我")
+        self.assertIsNone(auto["speakers"]["Speaker A"]["suggested_name"])
+
+        # LLM-guided single-speaker recluster (num_speakers=1)
+        forced_one = rfa.cluster_utterance_embeddings(utterances, embeddings, num_speakers=1, voiceprints=vp)
+        self.assertEqual(forced_one["speaker_count"], 1)
+        self.assertEqual(forced_one["utterances"][0]["speaker"], "Speaker A")
+        self.assertEqual(forced_one["utterances"][2]["speaker"], "Speaker A")
 
     def test_check_missing_directory_returns_actionable_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

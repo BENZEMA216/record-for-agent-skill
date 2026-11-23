@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -44,14 +45,17 @@ SENSEVOICE_URL = (
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/"
     f"{SENSEVOICE_DIR_NAME}.tar.bz2"
 )
+SENSEVOICE_SHA256 = "7d1efa2138a65b0b488df37f8b89e3d91a60676e416f515b952358d83dfd347e"
 SILERO_VAD_URL = (
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx"
 )
+SILERO_VAD_SHA256 = "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6"
 SPEAKER_EMBED_NAME = "3dspeaker_speech_eres2net_base_sv_zh-cn_3dspeaker_16k.onnx"
 SPEAKER_EMBED_URL = (
     "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/"
     f"{SPEAKER_EMBED_NAME}"
 )
+SPEAKER_EMBED_SHA256 = "f1ee61be04000b50392a63442e5dd9feaea7e81dddd494d3647cf1c3d88a1498"
 
 NON_SPEECH_EVENTS = {"BGM", "Music", "Applause", "Noise"}
 DEFAULT_SIM_THRESHOLD = 0.35
@@ -443,14 +447,40 @@ def resolve_model_paths(models_dir: Path | None = None) -> dict[str, Any]:
     }
 
 
-def _download_file(url: str, destination: Path) -> None:
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(256 * 1024):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_sha256(path: Path, expected_sha256: str) -> None:
+    actual = sha256_file(path)
+    if actual.lower() != expected_sha256.lower():
+        raise ValueError(
+            f"SHA-256 mismatch for {path.name}: expected {expected_sha256}, got {actual}. "
+            "Refusing to load unverified model artifact."
+        )
+
+
+def _download_file(url: str, destination: Path, *, expected_sha256: str) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     tmp = destination.with_suffix(destination.suffix + ".part")
     req = urllib.request.Request(url, headers={"User-Agent": "record-for-agent-skill/0.2"})
     print(f"Downloading {url} -> {destination.name} ...", file=sys.stderr, flush=True)
     try:
+        hasher = hashlib.sha256()
         with urllib.request.urlopen(req, timeout=180) as resp, open(tmp, "wb") as out:
-            shutil.copyfileobj(resp, out, length=256 * 1024)
+            while chunk := resp.read(256 * 1024):
+                hasher.update(chunk)
+                out.write(chunk)
+        actual = hasher.hexdigest()
+        if actual.lower() != expected_sha256.lower():
+            raise ValueError(
+                f"SHA-256 mismatch for {destination.name}: expected {expected_sha256}, got {actual}. "
+                "Download rejected."
+            )
         tmp.replace(destination)
     finally:
         tmp.unlink(missing_ok=True)
@@ -478,17 +508,17 @@ def download_models(models_dir: Path | None = None, *, include_diarization: bool
 
     if not status["sensevoice_ready"]:
         archive = root / f"{SENSEVOICE_DIR_NAME}.tar.bz2"
-        _download_file(SENSEVOICE_URL, archive)
+        _download_file(SENSEVOICE_URL, archive, expected_sha256=SENSEVOICE_SHA256)
         try:
             _safe_extract_tar_bz2(archive, root)
         finally:
             archive.unlink(missing_ok=True)
 
     if not status["silero_vad_ready"]:
-        _download_file(SILERO_VAD_URL, root / "silero_vad.onnx")
+        _download_file(SILERO_VAD_URL, root / "silero_vad.onnx", expected_sha256=SILERO_VAD_SHA256)
 
     if include_diarization and not status["diarization_ready"]:
-        _download_file(SPEAKER_EMBED_URL, root / SPEAKER_EMBED_NAME)
+        _download_file(SPEAKER_EMBED_URL, root / SPEAKER_EMBED_NAME, expected_sha256=SPEAKER_EMBED_SHA256)
 
     return resolve_model_paths(root)
 

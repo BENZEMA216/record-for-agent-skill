@@ -1,6 +1,10 @@
 # Record for Agent — Local Audio Skill (`Zero-API ASR + Dual-Factor Speaker Diarization`)
 
-[中文](#中文说明) | [English](#english)
+[![CI](https://github.com/BENZEMA216/record-for-agent-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/BENZEMA216/record-for-agent-skill/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Security & Trust Envelope](https://img.shields.io/badge/Security-SHA--256%20Verified%20%26%20Offline-blue.svg)](SECURITY.md)
+
+[中文](#中文说明) | [English](#english) | [安全边界 / Security](SECURITY.md)
 
 ---
 

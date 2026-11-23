@@ -177,6 +177,15 @@ class RFAContextTests(unittest.TestCase):
             self.assertEqual(groups, [])
             self.assertEqual(stats["missing_dirs"], [str(missing)])
 
+    def test_verify_sha256_accepts_exact_match_and_rejects_tampered_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            sample = Path(tmp) / "model.onnx"
+            sample.write_bytes(b"record-for-agent-model-bytes")
+            digest = rfa.sha256_file(sample)
+            rfa.verify_sha256(sample, digest)
+            with self.assertRaises(ValueError):
+                rfa.verify_sha256(sample, "0" * 64)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-security-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependency (numpy)
+        run: python -m pip install --upgrade pip && pip install numpy
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Static security hygiene check
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          src = Path("scripts/rfa_context.py").read_text(encoding="utf-8")
+          tree = ast.parse(src)
+          for node in ast.walk(tree):
+              if isinstance(node, ast.Call):
+                  if isinstance(node.func, ast.Name) and node.func.id in {"eval", "exec"}:
+                      raise SystemExit(f"Forbidden builtin call: {node.func.id}")
+                  for kw in node.keywords:
+                      if kw.arg == "shell" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                          raise SystemExit("Forbidden subprocess shell=True")
+          assert "SENSEVOICE_SHA256" in src and "SILERO_VAD_SHA256" in src and "SPEAKER_EMBED_SHA256" in src
+          print("Static security audit passed: zero eval/exec, zero shell=True, all model SHA-256 pinned.")
+          PY

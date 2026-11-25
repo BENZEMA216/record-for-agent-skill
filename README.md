@@ -1,6 +1,6 @@
 # Record for Agent — Local Audio Skill (`Zero-API ASR + Dual-Factor Speaker Diarization`)
 
-[![CI](https://github.com/BENZEMA216/record-for-agent-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/BENZEMA216/record-for-agent-skill/actions/workflows/ci.yml)
+[![CI](https://github.com/rawmemory/record-for-agent-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/rawmemory/record-for-agent-skill/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Security & Trust Envelope](https://img.shields.io/badge/Security-SHA--256%20Verified%20%26%20Offline-blue.svg)](SECURITY.md)
 
@@ -24,7 +24,7 @@
 ### 快速上手
 
 ```bash
-git clone https://github.com/BENZEMA216/record-for-agent-skill.git
+git clone https://github.com/rawmemory/record-for-agent-skill.git
 cd record-for-agent-skill
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
@@ -62,7 +62,7 @@ A lightweight, zero-API, zero-HF-token Agent Skill (`SKILL.md` + Python CLI) for
 ### Usage
 
 ```bash
-git clone https://github.com/BENZEMA216/record-for-agent-skill.git
+git clone https://github.com/rawmemory/record-for-agent-skill.git
 cd record-for-agent-skill
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .

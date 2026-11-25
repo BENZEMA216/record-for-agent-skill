@@ -40,7 +40,7 @@ The entire codebase is intentionally tiny (1 Markdown skill + 1 self-contained P
 
 ```bash
 # Pin to an immutable release tag instead of tracking `main`
-git clone --branch v0.2.0 --depth 1 https://github.com/BENZEMA216/record-for-agent-skill.git
+git clone --branch v0.2.0 --depth 1 https://github.com/rawmemory/record-for-agent-skill.git
 ```
 
 To report a security issue, please open a private security advisory on GitHub (`Security -> Advisories -> Report a vulnerability`).

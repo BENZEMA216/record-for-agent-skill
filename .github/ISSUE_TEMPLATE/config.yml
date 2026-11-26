@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "📱 Download Record for Agent on the App Store"
+    url: https://apps.apple.com/app/id6831018336
+    about: "Free on App Store (iOS 18+ & watchOS 11+, 174 countries & regions)"
+  - name: "📧 Email Support / 邮件联系开发者"
+    url: mailto:recordforagent@gmail.com
+    about: "Prefer email or private feedback? Write directly to recordforagent@gmail.com"
+  - name: "📖 Help & Privacy Policy / 帮助与隐私政策"
+    url: https://record-for-agent.benzemazdz99.chatgpt.site/support/
+    about: "Setup guide, sync troubleshooting, and zero-collection privacy policy"

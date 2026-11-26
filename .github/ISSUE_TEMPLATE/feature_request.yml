@@ -1,0 +1,22 @@
+name: "💡 Feature Request / 功能建议"
+description: "Suggest a new cloud sync provider, Agent workflow, Watch feature, or Skill improvement"
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        非常欢迎任何让 **Record for Agent** 更好用的点子！无论是新云盘（如 OneDrive / Dropbox / 飞书）、新的 AI Agent 适配，还是 Watch / iPhone 交互改进，都可以直接留言。
+        We love hearing how you use voice context with AI agents!
+  - type: textarea
+    id: use_case
+    attributes:
+      label: "What problem or workflow do you want to solve? / 你希望解决什么场景？"
+      placeholder: "例如：希望在开会结束后自动同步到 Obsidian / Notion，或支持某个新的 AI Agent..."
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: "Your idea / 你的想法（可选 / Optional）"
+      placeholder: "你理想中的体验是什么样的？"

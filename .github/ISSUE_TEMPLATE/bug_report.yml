@@ -1,0 +1,43 @@
+name: "🐛 Bug Report / 问题反馈"
+description: "Report a bug in Record for Agent (Apple Watch / iPhone / Mac Companion) or the Local Agent Skill"
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢帮我们发现问题！无论你是反馈 **Apple Watch / iPhone App** 还是 **本地开源 Skill** 的问题，都可以直接在这里提（中英文皆可）。
+        Thank you for helping improve **Record for Agent**! Feel free to write in English or Chinese.
+
+        > 🔒 **Privacy reminder / 隐私提醒**：请勿上传个人真实录音、完整转写或云盘凭据。如需附带日志，可在 iPhone App「设置 → 日志与诊断」导出脱敏诊断信息。
+  - type: dropdown
+    id: component
+    attributes:
+      label: "Where did this happen? / 问题发生模块"
+      options:
+        - "Apple Watch App（抬腕录音 / 小组件 / 传回手机）"
+        - "iPhone App（回放 / 标星 / 同步 / 提示词）"
+        - "Cloud Sync（iCloud / Google Drive / WebDAV / 局域网）"
+        - "Mac Companion（ContextAudioCompanion）"
+        - "Local Agent Skill（rfa_context.py / 离线转写 / 声纹分离）"
+        - "Other / 其他"
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: "What happened? / 发生了什么？"
+      description: "Briefly describe what you did and what went wrong. / 简单描述你的操作和遇到的异常。"
+      placeholder: "例如：在 Watch 上点表盘小组件开录，大约 3 秒后..."
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: "App / Device / OS Version（可选 / Optional）"
+      placeholder: "e.g. Record for Agent v1.1.2, iOS 26.x, watchOS 11.x, Apple Watch S10"
+  - type: textarea
+    id: extra
+    attributes:
+      label: "Error message or redacted diagnostics（可选 / Optional）"
+      description: "Any screenshot, error text, or redacted diagnostic snippet. / 报错原文、截图或脱敏诊断片段。"

@@ -1,0 +1,17 @@
+name: "💬 Experience & Quick Feedback / 使用体验与吐槽"
+description: "Share quick impressions, friction points, or questions — no format required!"
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        哪怕只是一句话吐槽、一个觉得别扭的按钮、或者一个“如果能这样就太好了”的念头，对我们都极其宝贵！
+        Quick impressions, rough edges, or questions — write freely in English or Chinese.
+  - type: textarea
+    id: feedback
+    attributes:
+      label: "What's on your mind? / 想说点什么？"
+      placeholder: "随便聊：哪里觉得顺手，哪里觉得卡壳或不够清楚？"
+    validations:
+      required: true
